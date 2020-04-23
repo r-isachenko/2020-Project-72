@@ -1,0 +1,509 @@
+\documentclass[12pt, twoside]{article}
+\usepackage{jmlda}
+\usepackage{tikz}
+\usetikzlibrary{matrix}
+
+\usepackage[pdftex,unicode, 
+colorlinks=true,
+linkcolor = blue
+]{hyperref}	% нумерование страниц, ссылки!!!!ИМЕННО В ТАКОМ ПОРЯДКЕ СО СЛЕДУЮЩИМ ПАКЕТОМ
+\newcommand{\hdir}{.}
+%\linespread{2} %Потом убрать
+\newcommand{\bx}{\mathbf{x}}
+\newcommand{\by}{\mathbf{y}}
+\newcommand{\bw}{\mathbf{w}}
+\newcommand{\ba}{\mathbf{a}}
+\newcommand{\bz}{\mathbf{z}}
+\newcommand{\bb}{\mathbf{b}}
+\newcommand{\bY}{\mathbf{Y}}
+\newcommand{\bX}{\mathbf{X}}
+\newcommand{\bu}{\mathbf{u}}
+\newcommand{\bt}{\mathbf{t}}
+\newcommand{\bp}{\mathbf{p}}
+\newcommand{\bq}{\mathbf{q}}
+\newcommand{\bc}{\mathbf{c}}
+\newcommand{\bP}{\mathbf{P}}
+\newcommand{\bT}{\mathbf{T}}
+\newcommand{\bB}{\mathbf{B}}
+\newcommand{\bQ}{\mathbf{Q}}
+\newcommand{\bC}{\mathbf{C}}
+\newcommand{\bE}{\mathbf{E}}
+\newcommand{\bF}{\mathbf{F}}
+\newcommand{\bU}{\mathbf{U}}
+\newcommand{\bW}{\mathbf{W}}
+
+\usepackage{graphicx}
+
+\graphicspath{{./figures/}}
+\usepackage{subcaption}
+\usepackage{neuralnetwork}
+
+\begin{document}
+
+\title
+    [Исследование способов согласования моделей с помощью снижения размерности пространства] % краткое название; не нужно, если полное название влезает в~колонтитул
+    {Исследование способов согласования моделей с помощью снижения размерности пространства}
+\author
+    [Ф.\,Р.~Яушев, Р.\,В.~Исаченко, В.\,В.~Стрижов] % список авторов (не более трех) для колонтитула; не нужен, если основной список влезает в колонтитул
+    {Ф.\,Р.~Яушев, Р.\,В.~Исаченко, В.\,В.~Стрижов} % основной список авторов, выводимый в оглавление
+    [Ф.\,Р.~Яушев, Р.\,В.~Исаченко, В.\,В.~Стрижов] % список авторов, выводимый в заголовок; не нужен, если он не отличается от основного
+\email
+    {yaushev@phystech.edu; roman.isachenko@phystech.edu; strijov@ccas.ru}
+
+\abstract
+    {В работе исследуется задача прогнозирования сложной целевой переменной. Под сложностью подразумевается наличие зависимостей (линейных или нелинейных). Предполагается, что исходные данные гетерогенны: пространства независимой и целевой переменных имеют разную природу. Предлагается построить предсказательную модель, которая учитывает зависимость в исходном пространстве независимой переменной, а также в пространстве целевой переменной. Согласование моделей предлагается производить в низкоразмерном пространстве. В качестве базового алгоритма используется метод метод проекции в скрытое пространство (PLS). В работе проводится сравнение линейной PLS и предложенной нелинейной модели. Сравнение производится на гетерогенных данных из пространств высокой размерности.
+	
+\bigskip
+\noindent
+\textbf{Ключевые слова}: \emph {}
+}
+
+
+
+%данные поля заполняются редакцией журнала
+%\doi{10.21469/22233792}
+%\receivedRus{25.02.2020}
+%\receivedEng{February 25, 2020}
+
+
+\maketitle
+%\linenumbers
+
+\section{Введение}
+В данной работе решается задача прогнозирования переменной сложной структуры. Сложность задачи в том, что исходные данные имеют высокую размерности и в пространствах целевой и независимой переменных есть сложные зависимости. Чрезмерно высокая размерность пространств приводит к неустойчивости модели. Для решения предлагается построить модель, которая бы учитывала эти зависимости. Построенная модель переводит данные в низкоразмерные пространства и согласование данных происходит в полученном скрытом пространстве.
+
+Метод проекции в скрытое пространство (Projection to Latent Space, PLS) \cite{overview_pls, overview_nonlinear_pls} является алгоритмом построения зависимости между двумя наборами данных, который часто применяется в биоинформатике, медицине, социальных науках \cite{1figures, btc519, PLS_in_strategic_management, PLS_application}. Алгоритм PLS находит матрицу совместного описания признаков и целевой переменной. Полученное пространство является низкоразмерным, что позволяет получить простую, точную и устойчивую прогностическую модель. Наряду с PLS используется алгоритм CCA \cite{cca_alg}. ССА широко применяется для поиска зависимостей между двумя наборами данных и получения их низкоразмерного представления \cite{cca_apl1, cca_apl2}. CCA максимизирует корреляции, а PLS~--- ковариации. Обзор и сравнение CCA и PLS приводится в \cite{overview_pls}. PLS и CCA~--- линейные модели, которые игнорируют сложные нелинейные зависимости. 
+
+На практике часто встречаются задачи, в которых между данными существует нелинейная зависимость. Попытка аппроксимировать эту зависимость линейной PLS моделью приводит к неудовлетворительным результатам. Разработано множество нелинейных модификаций PLS \cite{PLS_nn, PLS_rbf, PLS_ga} и ССA \cite{deep_cca, kernel_cca}. Например, Deep CCA \cite{deep_cca} преобразует исходные данные с помощью нейронной сети таким образом, что результирующее представление становится согласованным. Deep CCA используется для генерации текстового описания по изображениям в работе \cite{kernel_cca_appl}. 
+
+В работе проведено два эксперимента. Первый эксперимент направлен на сравнение эффективности Deep CCA и CCA на задаче классификации зашумленных цифровых изображений MNIST \cite{MNIST}. Во втором эксперименте используется набор данных, полученный делением каждого изображения из MNIST на левую и правую части. На задаче регрессии правой части изображения по левой проводится сравнение нелинейных моделей с применением автоэнкодеров, моделей без преобразования данных и линейного PLS. На основании полученных результатов сделан вывод о производительности нелинейных алгоритмов и о целесообразности использования той или иной модели.
+
+\section{Постановка задачи}
+
+Пусть дана выборка $(\bX, \bY)$, где $\bX \in \mathbb{R}^{n \times m}$~--- матрица объектов, $\bY \in \mathbb{R}^{n \times k}$~--- матрица ответов.
+\begin{equation*}
+\textbf{X} = [\textbf{x}_1, \dots, \textbf{x}_{n}]^{\T} ; \quad \textbf{Y} = [\textbf{y}_1, \dots, \textbf{y}_n]^{\T}.
+\end{equation*}
+
+Предполагается, что между объектами $\bx$ и ответами $\by$ существует зависимость
+\begin{equation}
+\by = f(\bx) + \boldsymbol{\varepsilon},
+\label{eq:reg}
+\end{equation}
+где $f: \mathbb{R}^{m} \to \mathbb{R}^{k}$~--- функция регрессионной зависимости, $\boldsymbol{\varepsilon}$ - вектор регрессионных ошибок.
+
+Необходимо восстановить зависимость $f$ по заданной выборке.
+
+\subsection{Линейная регрессия}
+Решается задача восстановления зависимости одной переменной от другой.  Предположим, что $\by$ линейно зависит от $\bx$. Требуется найти эту зависимость:
+\begin{equation}
+\textbf{\by} = f(\bx) + \boldsymbol{\varepsilon}=\textbf{W} \textbf{\bx}+ \boldsymbol{\varepsilon},
+\label{eq:model}
+\end{equation}
+\noindent где $\textbf{W} \in \mathbb{R}^{k \times m}$~-- матрица параметров модели.
+
+Оптимальные параметры определяются минимизацией функции потерь. Будем использовать квадратичную функцию потерь:
+\begin{equation}
+\mathcal{L}({\bW} | {\bX}, {\bY}) = {\left\| \underset{n \times k}{\bY}  - \underset{n \times m}{\bX} \cdot \underset{m \times k}{\bW}^{\T} \right\| }_2^2 \rightarrow\min_{\bW}.
+\label{eq:loss_function_2}
+\end{equation}
+
+Решение~\eqref{eq:loss_function_2} имеет следующий вид:
+\begin{equation*}
+\bW = \bY^{\T} \bX (\bX^{\T} \bX)^{-1}.
+\end{equation*}
+
+Линейная зависимость столбцов матрицы $\bX$ приводит к неустойчивости решения задачи минимизации~\eqref{eq:loss_function_2}, так как в этом случае матрица ${\bX}^{\T} \bX$ является плохо обусловленной.
+
+Для борьбы с линейной зависимостью используются методы снижения размерности, путем перехода в низкоразмерное латентное пространство.
+
+\begin{Definition}
+    Функция $\varphi_1: \mathbb{R}^{m} \to \mathbb{R}^{p}$, переводящая исходных данных в латентное пространство, называется функций кодирования.
+\end{Definition}
+
+\begin{Definition}
+    Функция $\varphi_2: \mathbb{R}^{k} \to \mathbb{R}^{p}$, переводящая данные из латентного пространства в исходное, называется функций декодирования.
+\end{Definition}
+
+\begin{Definition}
+    Функция $g: \mathbb{R}^{n}\times \mathbb{R}^{n} \to \mathbb{R}$, связывающая два низкоразмерных латентных представления, называется функций согласования.
+\end{Definition}
+
+\subsection{Снижение размерности}
+
+Общая схема модели выглядит следующим образом:
+\begin{equation}
+\begin{tikzpicture}
+  \matrix (m) [matrix of math nodes,row sep=3em,column sep=4em,minimum width=2em]
+  {
+     \underset{n \times m}{\bX} & \underset{n \times k}{\bY} \\
+     \underset{n \times p}{\mathbf{T}} &  \underset{n \times p}{\mathbf{U}} \\};
+  \path[-stealth]
+    (m-2-1) edge node [right] {$\varphi_2$} (m-1-1)
+    (m-2-2) edge node [left] {$\psi_2$} (m-1-2)
+    (m-1-1) edge [bend right] node [left] {$\varphi_1$} (m-2-1)
+    (m-1-2) edge [bend left] node [right] {$\psi_1$} (m-2-2)
+    (m-2-1) edge [<->] node [above] {$g$} (m-2-2)
+\end{tikzpicture},
+\label{eq:scheme}
+\end{equation}
+
+\noindent где $\varphi_1: \mathbb{R}^{m} \to \mathbb{R}^{p}$~---  функция кодирования объектов; $\psi_1: \mathbb{R}^{k} \to \mathbb{R}^{p}$~---  функция кодирования ответов; $\varphi_2: \mathbb{R}^{p} \to \mathbb{R}^{m}$~---  функция декодирования объектов; $\psi_2: \mathbb{R}^{p} \to \mathbb{R}^{k}$ -  функция декодирования ответов; $\bT = [\varphi_1(\bx_1), \cdots, \varphi_1(\bx_n)]^{\T}  \in \mathbb{R}^{n\times p}$ и $\bU =[\psi_1(\by_1), \cdots, \psi_1(\by_n)]^{\T} \in \mathbb{R}^{n\times p}$~--- матрицы представлений данных в латентном пространстве низкой размерности; $g: \mathbb{R}^{n} \times \mathbb{R}^{n} \to \mathbb{R}$~--- функция согласования.
+
+Оптимальные параметры $\theta_{\varphi_1}^{*}, \theta_{\psi_1}^{*}$ для функций кодирования $\varphi_1$  и $\psi_1$ находятся из следующей задачи параметрической оптимизации:
+\begin{equation}
+(\theta_{\varphi_1}^{*}, \theta_{\psi_1}^{*}) = \argmax_{(\theta_{\varphi_1}, \theta_{\psi_1})} [g(\varphi_1(\bX; \theta_{\varphi_1}), \psi_1(\bY; \theta_{\psi_1})))].
+\label{eq:argmax}
+\end{equation}
+
+Так как параметры функции кодирования подбирались из условия максимизации функции согласования~\eqref{eq:argmax}, то после перехода в латентное пространство между $\mathbf{T}$ и $\mathbf{U}$ существует зависимость
+\begin{equation}
+\bU = h(\bT) +  \boldsymbol{\eta},
+\label{eq:reg2}
+\end{equation}
+где $h: \mathbb{R}^{n \times p} \to \mathbb{R}^{n \times p}$~--- функция регрессионной зависимости,  \boldsymbol{\eta}~--- матрица регрессивных ошибок.
+
+Оптимальная $h$ находится минимизацией функции ошибки. Используем квадратичную функцию ошибки потерь $\mathcal{L}$ на $\bT$ и $\bU$:
+\begin{equation}
+\mathcal{L}(h | {\bT}, {\bU}) = {\left\| \underset{n \times p}{\bU}  - h(\underset{m \times p}{\bT}) \right\| }_2^2 \rightarrow\min_{h}.
+\label{eq:loss_function}
+\end{equation}
+
+Финальная прогностическая модель имеет вид:
+ $\widehat{\by} = \psi_2(h(\varphi_1(\bx)))$, то есть
+ 
+\begin{equation}
+f = \psi_2 \circ h \circ \varphi_1.
+\label{eq:f}
+\end{equation}
+
+\subsection{Метод Главных Компонент (PCA)}
+
+PCA~--- способ снижения размерности данных, сохраняющий максимальную дисперсию. PCA представляет собой ортогональное линейное преобразование исходного признакового пространства в новое пространство меньшей размерности. Первый базисный вектор строится так, чтобы выборочная дисперсия данных вдоль него была максимальной:
+\begin{equation}
+\bp_1 = \argmax_{\|\bp\|_{2} = 1} [\textit{var}(\bX \textbf{p})],
+\label{eq:PCA}
+\end{equation}
+где $var(\bX \textbf{p}) = \frac{1}{n} (\bX \textbf{p})^{\T}\bX \textbf{p}$ обозначает выборочную дисперсию.
+
+Функция кодирования $\varphi_1: \mathbb{R}^{m} \to \mathbb{R}^{p}$ примет вид:
+\begin{equation}
+\varphi_1(\bx) = \bP^{\T}\bx,
+\label{eq:PCA2}
+\end{equation}
+где $\textbf{P} = [\textbf{p}_1, \dots, \textbf{p}_{p}].$
+
+PCA не согласует объекты и ответы. Из-за этого некоторые зависимости могут быть не учтены.
+
+
+\subsection{PLS}
+
+PLS~--- алгоритм для моделирования связи между двумя наборами данных $\bX$ и $\bY$. Алгоритм проецирует $\bX$ и $\bY$ на латентное пространство $\mathbb{R}^{p}$ меньшей размерности. PLS находит матрицы исходных данных $\bX$ и $\bY$ в латентном пространстве $\textbf{T}$ и $\textbf{U}$ соответственно.
+
+Матрица объектов $\bX$ и целевая матрица $\bY$ проецируются на латентное пространство следующим образом:
+\begin{equation}
+\underset{n \times m}{\bX}  = \underset{n \times p}{\textbf{T}} \cdot \underset{p \times m}{\textbf{P}}^{\T} +  \underset{n \times m}{\textbf{F}},
+\label{eq:PLSpr1}
+\end{equation}
+\begin{equation}
+\underset{n \times k}{\bY}  = \underset{n \times p}{\textbf{U}} \cdot \underset{p \times k}{\bQ}^{\T} + \underset{n \times k}{\textbf{E}},
+\label{eq:PLSpr2}
+\end{equation}
+\noindent где $\textbf{T}$ и $\textbf{U}$ - матрицы описания объектов и исходов в латентном пространстве; $\textbf{P}$ и $\textbf{Q}$ - матрицы перехода из латентного пространства в исходное; $\textbf{F}$, $\textbf{E}$ - матрицы остатков.
+
+Для PLS  функции кодирования имеют вид:
+\begin{equation}
+\varphi_1(\bx) = \bW_{\bx}^{\T}\bx , \;\;
+\psi_1(\bY) = \bW_{\by}^{\T}\by ,
+\end{equation} 
+где матрицы весов $\bW_{\bx} \in \mathbb{R}^{m \times p}, \bW_{\by} \in \mathbb{R}^{k \times p}$. Столбцы матриц весов $\bw_{\bx}^{*}$ и $\bw_{\by}^{*}$ 
+находятся путем максимизации функции согласования $g(\bX \bw_{\bx}, \bY \bw_{\by}) = cov (\bX \bw_{\bx}, \bY \bw_{\by})^{2}$:
+\begin{equation}
+(\bw_{\bx}^{*}, \bw_{\by}^{*}) = \argmax_{\|\bw_{\by}\|_{2}=\|\bw_{\by}\|_{2}=1}[ cov(\bX \bw_{\bx}, \bY \bw_{\by})^{2}]
+\label{eq:PLSpr3}
+\end{equation}
+где $cov(\bX \bw_{\bx}, \bY \bw_{\by})$~-- выборочная ковариация между векторами.
+
+Функции декодирования принимают следующий вид:
+\begin{equation}
+\varphi_2(\bt) = \bP\bt, \;\;
+\psi_2(\bu) = \bQ\bu.
+\end{equation} 
+
+\subsection{CCA}
+
+Канонический анализ корреляций (CCA) находит два набора базисных векторов $\{\bw_{\bx}_{i}\}_{i=1}^{p}, \; \bw_{\bx} \in \mathbb{R}^{m}$ и $\{\bw_{\by}_{i}\}_{i=1}^{p}, \; \bw_{\by} \in \mathbb{R}^{k}$, один для $\bX$ и другой для $\bY$, так что коэффициент корреляция между проекциями переменных на эти базисные векторы была максимальной. Функция согласования для CCA
+\begin{equation}
+g(\bX \bw_{\bx}, \bY \bw_{\by}) = corr(\bX \bw_{\bx}, \bY \bw_{\by}),
+\end{equation} 
+\noindentгде $corr(\bX \bw_{\bx}, \bY \bw_{\by})$~-- коэффициент корреляции между векторами.
+
+Таким образом, функции кодирования
+\begin{equation}
+\varphi_1(\bx) = \bW_{\bx}^{\T}\bx , \;\;
+\psi_1(\bY) = \bW_{\by}^{\T}\by ,
+\end{equation}
+где первые столбцы матриц весов находится, как вектора максимизирующие функцию согласования $g$. Далее ищутся вектора, максимизирующие $g$, но с ограничением, что они не коррелируют с первой парой векторов. Процедура продолжается до тех пор, пока количество векторов не станет равным $p$. 
+\subsection{Deep CCA}
+
+Deep CCA~--- нелинейная модификация CCA. Deep CCA преобразует исходные данные с помощью нейронной сети таким образом, что результирующее представление становится согласованным. Предполагается, что есть $d$ слоев нейронной сети. 
+
+Выходом первого слоя для объекта $\bx$ будет $\mathbf{h}_1 = s(\bW^{1}_{\bx}\bx + \bb^{1}_{\bx}) \in \mathbb{R}^{c_1}$, где $\bW_{\bx}^{1} \in \mathbb{R}^{c_1 \times m}$~--- матрица весов, $\bb_{x}_{1} \in \mathbb{R}^{c_1}$~--- вектор смещения, $s: \mathbb{R} \to \mathbb{R}$~--- покомпонентная нелинейная функция. Далее выход первого слоя используется для вычисления выхода второго слоя $\mathbf{h}_{2} = s(\bW^{2}_{\bx}\mathbf{h}_{1} + \bb^{2}_{\bx}) \in \mathbb{R}^{c_2}$ и так далее до тех пор пока не будет найдено конечное представление $\varphi_1(\bx) = s(\bW^{d}_{\bx}\mathbf{h}_{d-1} + \bb^{d}_{\bx}) \in \mathbb{R}^{p}$. Аналогично находится представление для $\by$: $\psi_1(\by) = s(\bW^{d}_{\by}\mathbf{h}_{d-1} + \bb^{d}_{\by}) \in \mathbb{R}^{p}.$
+
+Обозначим $\theta_{\bx}$, $\theta_{\by}$~-- параметры для функций кодирования, то есть матрицы весов и векторы смещений. Оптимальные параметры $\theta_{\bx}^{*}$, $\theta_{\by}^{*}$ находятся из задачи оптимизации:
+\begin{equation}
+(\theta_{\bx}^{*}, \theta_{\by}^{*}) = \argmax _{(\theta_{\bx}, \theta_{\by})} [g(\varphi_1(\bX; \theta_{\bx}), \psi_1(\bY; \theta_{2}))] = \argmax _{(\theta_{\bx}, \theta_{\by})} [corr(\varphi_1(\bX; \theta_{\bx}), \psi_1(\bY; \theta_{2}))].
+\end{equation}
+
+\begin{figure}[h!]
+\begin{center}
+    \begin{tabular}{m{.3\textwidth}   m{.3\textwidth}}
+        \includegraphics[scale=1.5]{figures/noisy_mnist/data1.pdf} & 
+        \includegraphics[scale=1.5]{figures/noisy_mnist/data2.pdf} \\
+    
+    \end{tabular}
+    \end{center}
+	\caption{Зашумленные изображений из набора данных MNIST}
+	\label{fgr:1}
+\end{figure}
+
+\begin{table}[h!]
+	\caption{Получение нового признакового пространство размерности 15 с использованием DCCA и CCA. Показателем эффективности будет точность классификации линейного SVM  (ACC).}
+	\centering
+	\begin{tabular}{l|cc}
+		\hline
+		& DeepCCA(L=3) & CCA \\  \hline
+		Validation data & $92.74\%$  &  $76.21\%$\\
+		Test data & $92.14\%$ & $76.07\%$ \\
+		\hline
+	\end{tabular}
+	\label{tbl:1}
+\end{table}
+
+
+\subsection{Эксперимент №1}
+
+Проведем сравнение эффективности DeepCCA и CCA на задаче классификации зашумленных цифровых изображений~\eqref{fgr:1}. Для этого используется набор данных MNIST \cite{MNIST}, который состоит из 70000 цифровых изображений $28 \times 28$ образцов рукописного написания цифр. Предлагается получить два новых набора данных $\bX$ и $\bY$ следующим образом. Первый набор получим поворотом исходных изображений на угол в диапазоне $[\frac{-\pi}{4}, \frac{\pi}{4}]$. Для получения второго набора данных для каждой картинки из первого набора данных ставится в соответствие случайным образом картинка с той же цифрой, но с добавлением независимого случайного шума, распределенного равномерно на отрезке $[0,1]$.
+
+Применив к двум новым наборам данных DeepCCA или CCA, мы получаем новое низкоразмерное признаковое пространство, которое игнорирует шумы в исходных данных. Таким образом, получаем функции кодирования $\varphi_1$ и $\psi_1$ для исходных наборов данных. На новых признаках, полученных разными моделями (DeepCCA и CCA), для первого набора данных, то есть на данных после применения функции кодирования $\varphi_1$ к первому набору исходных данных, обучим линейный SVM классификатор. Показателем эффективности будет доля правильных ответов SVM на новых данных~--- accuracy (ACC). Результаты эксперимента приведены в таблице ~\eqref{tbl:1}.
+
+
+\begin{figure}[h!]
+\begin{center}
+    \begin{tabular}{
+    m{.042\textwidth}   m{.05\textwidth}   m{.042\textwidth}   m{.05\textwidth}  m{.042\textwidth}   m{.05\textwidth}   m{.042\textwidth}   m{.05\textwidth}   m{.042\textwidth}   m{.05\textwidth}   
+    }
+
+        \includegraphics[scale=3]{figures/original/0.pdf} & 
+        \includegraphics[scale=3]{figures/original/1.pdf} & 
+        \includegraphics[scale=3]{figures/original/2.pdf} & 
+        \includegraphics[scale=3]{figures/original/3.pdf} & 
+        \includegraphics[scale=3]{figures/original/4.pdf} & 
+        \includegraphics[scale=3]{figures/original/5.pdf} & 
+        \includegraphics[scale=3]{figures/original/6.pdf} & 
+        \includegraphics[scale=3]{figures/original/7.pdf} & 
+        \includegraphics[scale=3]{figures/original/8.pdf} & 
+        \includegraphics[scale=3]{figures/original/9.pdf} \\
+    
+    \end{tabular}
+    \end{center}
+	\caption{Набор данных MNIST, каждое изображение в котором разделили пополам.}
+	\label{fgr:3}
+\end{figure}
+
+\begin{table}[h!]
+	\caption{Восстановление правой части изображения по левой с использованием EncNet, LinearNet, DumbNet, DumbNet2. Для измерения качества моделей считается среднеквадратическое отклонения от оригинального изображения.
+	}
+	\centering
+	\begin{tabular}{l|cccccc}
+		\hline
+	   & EncNet1 & LinNet1 & EncNet2 & LinNet2 & DumbNet & PLS\\  \hline
+		Кол-во весов & $283$k & $239$k & $283$k & $239$k  & $283$k & -\\ 
+		MSE loss on test data & $0.147$ & $ 0.235$ & $0.149$ & $0.236$ & $0.128$ & $0.188$ \\ 
+		\hline
+	\end{tabular}
+	\label{tbl:2}
+\end{table}
+
+\subsection{Эксперимент №2}
+
+Проведем на задаче регрессии сравнение эффективности нескольких моделей, которые используют автоэнкодеры для снижения размерности пространства, моделей без преобразования исходных данных и линейный PLS. Для этого используется набор данных MNIST. Каждое изображение делится на левую и правую части~\eqref{fgr:3}. Модели по левому изображению предсказывают правое~\eqref{fgr:2}.
+
+Модель EncNet1~--- нейронная сеть с нелинейными функциями активации, которая обучается на данных после преобразования их автоэнкодером. Модель LinNet1~--- нейронная сеть с одним линейным слоем, которая также обучается на преобразованных данных. Для EncNet1 и LinNet1 автоэнкодеры для объектов и ответов используют совместную функцию потерь, которая связывает выходы енкодеров. Модели EncNet2 и LinNet2 устроены аналогично EncNet1 и LinNet1 соответственно, но в автоэнкодерах нет совместной функции потерь. Модель DumbNet~---  нейронная сеть, которая обучается на исходных данных и имеет такую же структуру, что и EncNet, то есть имеет такое же количество слоев и в каждом слое такое же количество нейронном, что и у EncNet.
+
+Для измерения качества моделей будет считать среднеквадратическое отклонение. Результаты работы алгоритмов показаны на изображении~\eqref{fgr:2}. Качество работы моделей, а также их сложность представлены в таблице~\eqref{tbl:2}.
+
+\begin{figure}[h!]
+\begin{center}
+    \begin{tabular}{m{.1\textwidth}   m{.1\textwidth}   m{.1\textwidth}   m{.1\textwidth}   m{.1\textwidth}  m{.1\textwidth}  m{.1\textwidth} m{.1\textwidth}}
+    \hline   
+        \textbf{Left} & \textbf{Right} & \textbf{EncNet1} & \textbf{LinNet1} & \textbf{EncNet2} & \textbf{LinNet2} & \textbf{DumbNet} & \textbf{PLS}\\
+
+
+        \includegraphics[scale=5]{figures/pred/10.pdf} & 
+        \includegraphics[scale=5]{figures/pred/11.pdf} &         \includegraphics[scale=5]{figures/pred/16.pdf} & 
+        \includegraphics[scale=5]{figures/pred/17.pdf} & 
+        \includegraphics[scale=5]{figures/pred/12.pdf} & 
+        \includegraphics[scale=5]{figures/pred/13.pdf} & 
+        \includegraphics[scale=5]{figures/pred/14.pdf} & 
+        \includegraphics[scale=5]{figures/pred/15.pdf}\\
+        
+        \includegraphics[scale=5]{figures/pred/20.pdf} & 
+        \includegraphics[scale=5]{figures/pred/21.pdf} &         \includegraphics[scale=5]{figures/pred/26.pdf} & 
+        \includegraphics[scale=5]{figures/pred/27.pdf} & 
+        \includegraphics[scale=5]{figures/pred/22.pdf} & 
+        \includegraphics[scale=5]{figures/pred/23.pdf} & 
+        \includegraphics[scale=5]{figures/pred/24.pdf} & 
+        \includegraphics[scale=5]{figures/pred/25.pdf}\\
+        
+        \includegraphics[scale=5]{figures/pred/30.pdf} & 
+        \includegraphics[scale=5]{figures/pred/31.pdf} &         \includegraphics[scale=5]{figures/pred/36.pdf} & 
+        \includegraphics[scale=5]{figures/pred/37.pdf} & 
+        \includegraphics[scale=5]{figures/pred/32.pdf} & 
+        \includegraphics[scale=5]{figures/pred/33.pdf} & 
+        \includegraphics[scale=5]{figures/pred/34.pdf} & 
+        \includegraphics[scale=5]{figures/pred/35.pdf}\\
+    \hline
+    
+    \end{tabular}
+    \end{center}
+	\caption{Восстановление правой части изображения по левой.}
+	\label{fgr:2}
+\end{figure}
+
+\tikzset{%
+  every neuron/.style={
+    circle,
+    draw,
+    minimum size=0.5cm
+  },
+  neuron missing/.style={
+    draw=none, 
+    scale=1,
+    text height=0.1cm,
+    execute at begin node=\color{black}$\vdots$
+  },
+}
+
+% \begin{tikzpicture}[x=0.7cm, y=0.8cm, >=stealth]
+
+% \foreach \m/\l [count=\y] in {1,2,3,missing,4}
+%   \node [every neuron/.try, neuron \m/.try] (input-\m) at (0,2-\y) {};
+
+% \foreach \m [count=\y] in {1,missing,2}
+%   \node [every neuron/.try, neuron \m/.try ] (hidden1-\m) at (2,1.5-\y*1.25) {};
+
+% \foreach \m [count=\y] in {1,missing,2}
+%   \node [every neuron/.try, neuron \m/.try ] (latent-\m) at (4,1-\y) {};
+  
+% \foreach \m [count=\y] in {1,missing,2}
+%   \node [every neuron/.try, neuron \m/.try ] (hidden3-\m) at (6,1.5-\y*1.25) {};
+
+% \foreach \m/\l [count=\y] in {1,2,3,missing,4}
+%   \node [every neuron/.try, neuron \m/.try] (output-\m) at (8,2-\y) {};
+  
+  
+% \foreach \l [count=\i] in {1,2,3,n}
+%   \draw [<-] (input-\i) -- ++(-1,0)
+%     node [above, midway] {$I_\l$};
+
+% \foreach \l [count=\i] in {1,n}
+%   \node [above] at (hidden1-\i.north) {$H_\l$};
+
+% \foreach \l [count=\i] in {1,n}
+%   \node [above] at (latent-\i.north) {$L_\l$};
+    
+% \foreach \l [count=\i] in {1,n}
+%   \node [above] at (hidden3-\i.north) {$H_\l$};
+
+% \foreach \l [count=\i] in {1,2,3,n}
+%   \draw [->] (output-\i) -- ++(1,0)
+%     node [above, midway] {$O_\l$};
+    
+% \foreach \i in {1,...,4}
+%   \foreach \j in {1,...,2}
+%     \draw [->] (input-\i) -- (hidden1-\j);
+
+% \foreach \i in {1,...,2}
+%   \foreach \j in {1,...,2}
+%     \draw [->] (hidden1-\i) -- (latent-\j);
+    
+% \foreach \i in {1,...,2}
+%   \foreach \j in {1,...,2}
+%     \draw [->] (latent-\i) -- (hidden3-\j);    
+
+% \foreach \i in {1,...,2}
+%   \foreach \j in {1,...,4}
+%     \draw [->] (hidden3-\i) -- (output-\j);
+
+
+% \foreach \l [count=\x from 0] in {Input, Hidden, Latent, Hidden, Output}
+%   \node [align=center, above] at (\x*2,1.4) {\l};
+
+% \end{tikzpicture}
+
+% \begin{tikzpicture}[x=0.7cm, y=0.8cm, >=stealth]
+
+% \foreach \m/\l [count=\y] in {1,2,3,missing,4}
+%   \node [every neuron/.try, neuron \m/.try] (input-\m) at (0,2-\y) {};
+
+% \foreach \m [count=\y] in {1,missing,2}
+%   \node [every neuron/.try, neuron \m/.try ] (hidden1-\m) at (2,1.5-\y*1.25) {};
+
+% \foreach \m [count=\y] in {1,missing,2}
+%   \node [every neuron/.try, neuron \m/.try ] (latent-\m) at (4,1-\y) {};
+  
+% \foreach \m [count=\y] in {1,missing,2}
+%   \node [every neuron/.try, neuron \m/.try ] (hidden3-\m) at (6,1.5-\y*1.25) {};
+
+% \foreach \m/\l [count=\y] in {1,2,3,missing,4}
+%   \node [every neuron/.try, neuron \m/.try] (output-\m) at (8,2-\y) {};
+  
+  
+% \foreach \l [count=\i] in {1,2,3,n}
+%   \draw [<-] (input-\i) -- ++(-1,0)
+%     node [above, midway] {$I_\l$};
+
+% \foreach \l [count=\i] in {1,n}
+%   \node [above] at (hidden1-\i.north) {$H_\l$};
+
+% \foreach \l [count=\i] in {1,n}
+%   \node [above] at (latent-\i.north) {$L_\l$};
+    
+% \foreach \l [count=\i] in {1,n}
+%   \node [above] at (hidden3-\i.north) {$H_\l$};
+
+% \foreach \l [count=\i] in {1,2,3,n}
+%   \draw [->] (output-\i) -- ++(1,0)
+%     node [above, midway] {$O_\l$};
+    
+% \foreach \i in {1,...,4}
+%   \foreach \j in {1,...,2}
+%     \draw [->] (input-\i) -- (hidden1-\j);
+
+% \foreach \i in {1,...,2}
+%   \foreach \j in {1,...,2}
+%     \draw [->] (hidden1-\i) -- (latent-\j);
+    
+% \foreach \i in {1,...,2}
+%   \foreach \j in {1,...,2}
+%     \draw [->] (latent-\i) -- (hidden3-\j);    
+
+% \foreach \i in {1,...,2}
+%   \foreach \j in {1,...,4}
+%     \draw [->] (hidden3-\i) -- (output-\j);
+
+
+% \end{tikzpicture}
+
+
+
+
+%%% если имеется doi цитируемого источника, необходимо его указать, см. пример в \bibitem{article}
+%%% DOI публикации, зарегистрированной в системе Crossref, можно получить по адресу http://www.crossref.org/guestquery/
+
+\bibliographystyle{unsrt}
+\bibliography{links}
+
+\end{document}
+
