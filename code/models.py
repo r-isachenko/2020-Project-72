@@ -26,8 +26,12 @@ class Base(nn.Module):
                 n_out = l['n_out']
                 activation_fn = l.get('activation_fn', 'relu')
                 self._add_conv(n_in, n_out, activation_fn)
-            if l['type'] == 'pool':
+            elif l['type'] == 'pool':
                 self._add_pool()
+            elif l['type'] == 'upsample':
+                self._add_upsample()
+            else:
+                raise ValueError("layer type '{}' is unknown".format(l['type']))
         return nn.Sequential(*self._layers)
 
     def _add_conv(self, n_in, n_out, activation_fn):
@@ -59,17 +63,12 @@ def get_models(params):
     return models
 
 
-class Models:
-    def __init__(self, params):
+def predict(models, x):
+    x = models['encoder_input'](x)
+    x = models['alignment'](x)
+    x = models['decoder_target'](x)
 
-        self._models = get_models(params)
-
-    def predict(self, x):
-        x = self._models['encoder_input'](x)
-        x = self._models['alignment'](x)
-        x = self._models['decoder_target'](x)
-
-        return x
+    return x
 
 
 class DumbNet(nn.Module):

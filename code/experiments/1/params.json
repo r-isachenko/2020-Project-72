@@ -14,7 +14,7 @@
     "decoder_input": {
       "arch": [
         {"type":  "conv", "n_in": 8, "n_out": 16},
-        {"type":  "pool"},
+        {"type":  "upsample"},
         {"type":  "conv", "n_in": 16, "n_out": 1, "activation_fn":  "sigmoid"}
       ]
     },
@@ -28,7 +28,7 @@
     "decoder_target": {
       "arch": [
         {"type":  "conv", "n_in": 8, "n_out": 16},
-        {"type":  "pool"},
+        {"type":  "upsample"},
         {"type":  "conv", "n_in": 16, "n_out": 1, "activation_fn":  "sigmoid"}
       ]
     },
@@ -37,10 +37,26 @@
       }
     }
   },
-  "loss": {
-    "reconstruct_input": 1.0,
-    "reconstruct_target": 1.0,
-    "alignment": 1.0,
-    "prediction": 1.0
+  "losses": {
+    "reconstruct_input": {
+      "scale": 1.0,
+      "type": "mse"
+    },
+    "reconstruct_target": {
+      "scale": 1.0,
+      "type": "mse"
+    },
+    "coherence": {
+      "scale" : 1.0,
+      "type": "mse"
+    },
+    "alignment": {
+      "scale": 1.0,
+      "type": "mse"
+    },
+    "prediction": {
+      "scale": 1.0,
+      "type": "mse"
+    }
   }
 }

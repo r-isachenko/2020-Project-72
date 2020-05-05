@@ -2,8 +2,8 @@ import argparse
 import json
 
 from data_loader import get_data_loader
-from models import Models
-
+from models import get_models, predict
+from loss import get_losses, compute_losses
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -24,11 +24,12 @@ def main(args):
     train_loader = get_data_loader(params['data_type'], train=True, batch_size=params['batch_size'])
     valid_loader = get_data_loader(params['data_type'], train=False, batch_size=params['batch_size'])
 
-    models = Models(params['models'])
+    models = get_models(params['models'])
+    losses = get_losses(params['losses'])
 
     for x, y in train_loader:
-
-
+        loss_values = compute_losses(losses, models, x, y)
+        print(loss_values)
         break
 
 
