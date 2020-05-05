@@ -1,0 +1,27 @@
+# Tex
+*.synctex.gz
+*.log
+*.aux
+*.out
+*eps-converted-to.pdf
+*.toc
+*.snm
+*.nav
+*.bbl
+*.blg
+
+# Python
+*.pyc
+*__pycache__/
+
+# IDE
+*.idea/
+
+# MacOS
+*.DS_Store
+
+# Jupyter
+*.ipynb_checkpoints/
+
+# Data
+*data/
