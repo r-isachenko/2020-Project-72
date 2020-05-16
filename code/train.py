@@ -2,8 +2,9 @@ import argparse
 import json
 
 from data_loader import get_data_loader
-from models import get_models, predict
+from models import get_models, get_params, predict
 from loss import get_losses, compute_losses
+from optimizer import get_optimizer
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -27,9 +28,22 @@ def main(args):
     models = get_models(params['models'])
     losses = get_losses(params['losses'])
 
-    for x, y in train_loader:
+    model_params = get_params(models)
+    optimizer = get_optimizer(params['optimizer'], model_params)
+
+    for step, (x, y) in enumerate(train_loader):
         loss_values = compute_losses(losses, models, x, y)
-        print(loss_values)
+        optimizer.zero_grad()
+
+        loss_values['total_loss'].backward()
+        optimizer.step()
+
+        if step % params['summary']['train_frequency'] == 0:
+            pass
+
+        if step % params['summary']['save_frequency'] == 0:
+            pass
+
         break
 
 

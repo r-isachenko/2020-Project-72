@@ -63,6 +63,13 @@ def get_models(params):
     return models
 
 
+def get_params(models):
+    params = []
+    for model in models.values():
+        params.extend(model.parameters())
+    return params
+
+
 def predict(models, x):
     x = models['encoder_input'](x)
     x = models['alignment'](x)

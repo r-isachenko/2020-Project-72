@@ -58,5 +58,13 @@
       "scale": 1.0,
       "type": "mse"
     }
+  },
+  "optimizer": {
+    "type": "sgd",
+    "kwargs": {"lr": 0.001}
+  },
+  "summary": {
+    "train_frequency": 100,
+    "save_frequency": 200
   }
 }
