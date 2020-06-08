@@ -1,6 +1,7 @@
 {
+  "name": "experiment1",
   "data_type": "mnist_left_right",
-  "num_epochs": 3,
+  "num_epochs": 2,
   "batch_size": 32,
   "learning_rate": 0.01,
   "models": {
@@ -33,7 +34,8 @@
       ]
     },
     "alignment": {
-      "arch": {
+      "arch":   {
+
       }
     }
   },
