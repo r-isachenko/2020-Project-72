@@ -1,13 +1,15 @@
 import argparse
+import os
 import json
+
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 from data_loader import get_data_loader
 from models import get_models, get_params, predict
 from loss import get_losses, compute_losses
 from optimizer import get_optimizer
 
-from torch.utils.tensorboard import SummaryWriter
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -25,7 +27,7 @@ def read_params(fid):
 def main(args):
     params = read_params(args.params_path)
 
-    writer = SummaryWriter(args.params_path + '/runs/')
+    writer = SummaryWriter(os.path.join(args.params_path, 'runs'))
 
     train_loader = get_data_loader(params['data_type'], train=True, batch_size=params['batch_size'])
     valid_loader = get_data_loader(params['data_type'], train=False, batch_size=params['batch_size'])
@@ -57,12 +59,13 @@ def main(args):
                                   epoch * len(train_loader) + step)
 
             if step % params['summary']['save_frequency'] == 0:
+                save_path = os.path.join(args.params_path, 'model_backup', str(epoch))
                 torch.save({
                     'epoch': epoch,
                     'model_state_dict': models.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
                     'loss': loss_values,
-                }, args.params_path + '/model_backup/' + str(epoch))
+                }, save_path)
 
 
 if __name__ == '__main__':
