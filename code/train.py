@@ -25,7 +25,7 @@ def read_params(fid):
 def main(args):
     params = read_params(args.params_path)
 
-    writer = SummaryWriter('runs/' + params['name'])
+    writer = SummaryWriter(args.params_path + '/runs/')
 
     train_loader = get_data_loader(params['data_type'], train=True, batch_size=params['batch_size'])
     valid_loader = get_data_loader(params['data_type'], train=False, batch_size=params['batch_size'])
@@ -52,18 +52,17 @@ def main(args):
 
             running_loss += loss_values['total_loss'].item()
             if step % params['summary']['train_frequency'] == 0:
-                pass
-
-            if step % params['summary']['save_frequency'] == 0:
                 writer.add_scalar('training loss',
                                   running_loss / params['summary']['save_frequency'],
                                   epoch * len(train_loader) + step)
+
+            if step % params['summary']['save_frequency'] == 0:
                 torch.save({
                     'epoch': epoch,
                     'model_state_dict': models.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
                     'loss': loss_values,
-                }, 'model_backup/' + params['name'] + '/' + str(epoch))
+                }, args.params_path + '/model_backup/' + str(epoch))
 
 
 if __name__ == '__main__':
